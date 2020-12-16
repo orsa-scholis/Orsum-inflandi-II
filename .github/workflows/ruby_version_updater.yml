@@ -1,0 +1,28 @@
+name: Ruby Version Updater
+
+on:
+  workflow_dispatch:
+    inputs:
+      rubyVersion:
+        description: 'New Ruby Version to set (x.x.x)'     
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - uses: tibdex/github-app-token@v1
+      id: generate-token
+      with:
+          app_id: ${{ secrets.PR_TOKEN_APP_ID }}
+          private_key: ${{ secrets.PR_TOKEN_APP_PRIVATE_KEY }}
+          
+    - name: Replace Ruby version in Gemfiles
+      run: find . -type f -name "Gemfile" -print0 | xargs -0 -n1 -I @ bash -c "sed -i \"s/ruby '[0-9].[0-9].[0-9]'/ruby '${{ github.event.inputs.rubyVersion }}'/g\" @"
+      
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v2
+      with:
+          token: ${{ steps.generate-token.outputs.token }}
